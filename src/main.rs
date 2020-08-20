@@ -4,7 +4,9 @@
 use reqwest::blocking::{Client, ClientBuilder};
 use serde::Deserialize;
 
-mod pushshift;
+mod psendpoint;
+mod pserror;
+mod pushshiftbuilder;
 
 #[derive(Debug, Deserialize)]
 struct User {
