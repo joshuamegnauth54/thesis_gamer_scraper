@@ -5,6 +5,7 @@ use reqwest::blocking::{Client, ClientBuilder};
 use serde::Deserialize;
 
 mod pushshift;
+mod scraperclient;
 
 #[derive(Debug, Deserialize)]
 struct User {

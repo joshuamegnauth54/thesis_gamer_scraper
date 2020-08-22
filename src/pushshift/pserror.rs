@@ -3,10 +3,13 @@ use std::error::Error;
 #[warn(clippy::all)]
 use std::fmt::{Display, Formatter};
 
+pub static MAX_PS_FETCH_SIZE: u32 = 1000;
+
 #[derive(Debug, Clone)]
 pub enum PSError {
     AlreadyAdded(String),
     InvalidSubreddit(String),
+    SizeTooHigh(u32),
 }
 
 impl Display for PSError {
@@ -18,6 +21,11 @@ impl Display for PSError {
                 f,
                 "Subreddit may only contain alphanumeric and _: {}",
                 subreddit
+            ),
+            SizeTooHigh(size) => write!(
+                f,
+                "Size must be less than {}; got: {}",
+                MAX_PS_FETCH_SIZE, size
             ),
         }
     }
