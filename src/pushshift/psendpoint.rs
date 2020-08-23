@@ -1,7 +1,7 @@
 #[warn(clippy::all)]
 use std::fmt::{Display, Error, Formatter};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum PSEndpoint {
     Comment,
     Submission,

@@ -1,6 +1,6 @@
-use std::convert::From;
-use std::error::Error;
 #[warn(clippy::all)]
+//use std::convert::From;
+use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 pub static MAX_PS_FETCH_SIZE: u32 = 1000;
@@ -9,6 +9,7 @@ pub static MAX_PS_FETCH_SIZE: u32 = 1000;
 pub enum PSError {
     AlreadyAdded(String),
     InvalidSubreddit(String),
+    NoParams,
     SizeTooHigh(u32),
 }
 
@@ -22,6 +23,10 @@ impl Display for PSError {
                 "Subreddit may only contain alphanumeric and _: {}",
                 subreddit
             ),
+            NoParams => write!(
+                f,
+                "No parameters found. You have to specify parameters such as a subreddit."
+            ),
             SizeTooHigh(size) => write!(
                 f,
                 "Size must be less than {}; got: {}",
@@ -30,3 +35,5 @@ impl Display for PSError {
         }
     }
 }
+
+impl Error for PSError {}

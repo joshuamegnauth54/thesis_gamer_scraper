@@ -1,9 +1,7 @@
 #[warn(clippy::all)]
 use lazy_static::lazy_static;
 use regex::Regex;
-use reqwest::blocking::{Client, ClientBuilder};
 use reqwest::Url;
-use serde::Deserialize;
 use std::collections::HashMap;
 use url::ParseError;
 
@@ -11,7 +9,7 @@ use super::psendpoint::PSEndpoint;
 use super::pserror::PSError;
 use super::pserror::MAX_PS_FETCH_SIZE;
 
-// Builds up a Pushshift object similar to how reqwest builds up Clients/Requests.
+/// Builds a reqwest::Url for the PushShift Reddit API.
 #[derive(Clone, Debug)]
 pub struct PushshiftBuilder {
     url: String,
@@ -26,8 +24,10 @@ impl PushshiftBuilder {
         }
     }
 
-    pub fn build(self) -> Result<Url, ParseError> {
-        unimplemented!();
+    /// Builds the PushShift API call provided that the caller specified some parameters.
+    /// This function doesn't consume self to facilitate building new URLs using _clone_replace_sub_.
+    pub fn build(&self) -> Result<Url, ParseError> {
+        Ok(Url::parse_with_params(&self.url, &self.params)?)
     }
 
     pub fn clone_replace_sub(&self, sub: &str) -> Result<PushshiftBuilder, PSError> {
@@ -37,7 +37,7 @@ impl PushshiftBuilder {
         Ok(newself)
     }
 
-    pub fn subreddit(&mut self, sub: &str) -> Result<(), PSError> {
+    pub fn subreddit(&mut self, sub: &str) -> Result<&mut Self, PSError> {
         // Using the lazy_static! macro is good practice according to the regex crate docs.
         lazy_static! {
             // I tested the RegEx below so we may unwrap() safely.
@@ -50,7 +50,7 @@ impl PushshiftBuilder {
         }
     }
 
-    pub fn size(&mut self, size: u32) -> Result<(), PSError> {
+    pub fn size(&mut self, size: u32) -> Result<&mut Self, PSError> {
         if size <= MAX_PS_FETCH_SIZE {
             Ok(self.add_param("size", &size.to_string())?)
         } else {
@@ -58,7 +58,7 @@ impl PushshiftBuilder {
         }
     }
 
-    fn add_param(&mut self, param: &str, par_options: &str) -> Result<(), PSError> {
+    fn add_param(&mut self, param: &str, par_options: &str) -> Result<&mut Self, PSError> {
         // Add_param() only allows a parameter to be added once. I decided against allowing
         // replacement in order to be as explicit as possible.
         if self.params.contains_key(param) {
@@ -66,7 +66,7 @@ impl PushshiftBuilder {
         } else {
             self.params
                 .insert(param.to_string(), par_options.to_string());
-            Ok(())
+            Ok(self)
         }
     }
 }
