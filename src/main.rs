@@ -14,6 +14,7 @@ fn main() -> Result<(), PSError> {
         .build()
         .unwrap();
 
+    let pcgaming = ps4.clone
     println!("{}", ps4);
 
     Ok(())

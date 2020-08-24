@@ -25,16 +25,24 @@ impl PushshiftBuilder {
     }
 
     /// Builds the PushShift API call provided that the caller specified some parameters.
-    /// This function doesn't consume self to facilitate building new URLs using _clone_replace_sub_.
-    pub fn build(&self) -> Result<Url, ParseError> {
-        Ok(Url::parse_with_params(&self.url, &self.params)?)
+    /// This function doesn't consume self to facilitate building new URLs using _replace_sub_.
+    pub fn build(&self) -> Result<Url, PSError> {
+        if !self.params.is_empty() {
+            Ok(Url::parse_with_params(&self.url, &self.params)?)
+        } else {
+            Err(PSError::NoParams)
+        }
     }
 
-    pub fn clone_replace_sub(&self, sub: &str) -> Result<PushshiftBuilder, PSError> {
-        let mut newself = self.clone();
-        let _ignore = newself.params.remove("subreddit");
-        newself.subreddit(sub)?;
-        Ok(newself)
+    pub fn build_multiple(&mut self, subs: &[&str]) -> Vec<Result<Url, PSError>> {
+        subs.iter()
+            .map(|sub| self.replace_sub(sub)?.build())
+            .collect()
+    }
+
+    pub fn replace_sub(&mut self, sub: &str) -> Result<&mut Self, PSError> {
+        let _ignore = self.params.remove("subreddit");
+        Ok(self.subreddit(sub)?)
     }
 
     pub fn subreddit(&mut self, sub: &str) -> Result<&mut Self, PSError> {
