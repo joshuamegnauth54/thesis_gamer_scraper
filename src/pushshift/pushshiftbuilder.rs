@@ -3,7 +3,6 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::Url;
 use std::collections::HashMap;
-use url::ParseError;
 
 use super::psendpoint::PSEndpoint;
 use super::pserror::PSError;
@@ -34,7 +33,7 @@ impl PushshiftBuilder {
         }
     }
 
-    pub fn build_multiple(&mut self, subs: &[&str]) -> Vec<Result<Url, PSError>> {
+    pub fn build_multiple(&mut self, subs: &[&str]) -> Result<Vec<Url>, PSError> {
         subs.iter()
             .map(|sub| self.replace_sub(sub)?.build())
             .collect()

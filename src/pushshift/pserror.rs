@@ -4,14 +4,18 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use url::ParseError;
 
+use serde_json::Error as SerdeJSONError;
+
 pub static MAX_PS_FETCH_SIZE: u32 = 1000;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum PSError {
     AlreadyAdded(String),
     InvalidSubreddit(String),
     NoParams,
     Parse(ParseError),
+    Reqwest(reqwest::Error),
+    SerdeJson(SerdeJSONError),
     SizeTooHigh(u32),
 }
 
@@ -30,6 +34,8 @@ impl Display for PSError {
                 "No parameters found. You have to specify parameters such as a subreddit."
             ),
             Parse(error) => write!(f, "{}", error.to_string()),
+            Reqwest(error) => write!(f, "{}", error.to_string()),
+            SerdeJson(error) => write!(f, "{}", error.to_string()),
             SizeTooHigh(size) => write!(
                 f,
                 "Size must be less than {}; got: {}",
@@ -44,5 +50,17 @@ impl Error for PSError {}
 impl From<ParseError> for PSError {
     fn from(error: ParseError) -> Self {
         PSError::Parse(error)
+    }
+}
+
+impl From<reqwest::Error> for PSError {
+    fn from(error: reqwest::Error) -> Self {
+        PSError::Reqwest(error)
+    }
+}
+
+impl From<SerdeJSONError> for PSError {
+    fn from(error: SerdeJSONError) -> Self {
+        PSError::SerdeJson(error)
     }
 }
