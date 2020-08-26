@@ -16,8 +16,8 @@ pub struct Node {
 #[derive(Debug)]
 pub struct ScraperClient {
     client: Client,
-    urls: Vec<Url>,
     nodes: HashSet<Node>,
+    urls: Vec<Url>,
 }
 
 /// I designed ScraperClient specifically for my thesis, so I'm not sure if anyone else would
@@ -51,14 +51,29 @@ impl ScraperClient {
         self.nodes.len()
     }
 
+    fn reqwest_error(error: reqwest::Error) -> reqwest::Error {
+        error
+    }
+
+    fn json_error(error: reqwest::Error) -> reqwest::Error {
+        error
+    }
+
     // Not an actual test function.
     // Fix the ugly conversion from Url to &str somehow later
     // And maybe do a call back thingy to log errors or something?
-    pub fn test(&mut self) -> Result<Vec<Node>, PSError> {
+    pub fn test(&mut self) -> Vec<Node> {
         let mut nodes_test: Vec<Node> = Vec::new();
         for url in self.urls.iter().map(|url| url.as_str()) {
-            nodes_test.append(&mut self.client.get(url).send()?.json()?);
+            let results: Result<Node, reqwest::Error> = self
+                .client
+                .get(url)
+                .send()
+                .map_err(|error| ScraperClient::reqwest_error(error))
+                .and_then(|response| response.json())
+                .map_err(|error| ScraperClient::json_error(error));
+            println!("{:?}", results);
         }
-        Ok(nodes_test)
+        nodes_test
     }
 }

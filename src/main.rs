@@ -16,7 +16,7 @@ fn main() -> Result<(), PSError> {
 
     let mut scraper = ScraperClient::new(90, &subs).unwrap();
     println!("{:?}", subs);
-    let nodes = scraper.test()?;
+    let nodes = scraper.test();
     println!("{:?}", nodes);
 
     Ok(())
