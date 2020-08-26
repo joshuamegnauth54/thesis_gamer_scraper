@@ -33,9 +33,9 @@ impl Display for PSError {
                 f,
                 "No parameters found. You have to specify parameters such as a subreddit."
             ),
-            Parse(error) => write!(f, "{}", error.to_string()),
-            Reqwest(error) => write!(f, "{}", error.to_string()),
-            SerdeJson(error) => write!(f, "{}", error.to_string()),
+            Parse(error) => write!(f, "Parse: {}", error.to_string()),
+            Reqwest(error) => write!(f, "Reqwest: {}", error.to_string()),
+            SerdeJson(error) => write!(f, "Serde: {}", error.to_string()),
             SizeTooHigh(size) => write!(
                 f,
                 "Size must be less than {}; got: {}",
