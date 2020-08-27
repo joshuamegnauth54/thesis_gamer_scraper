@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use super::psendpoint::PSEndpoint;
 use super::pserror::PSError;
 use super::pserror::MAX_PS_FETCH_SIZE;
+use super::timeconvenience::TimeConvenience;
 
 /// Builds a reqwest::Url for the PushShift Reddit API.
 #[derive(Clone, Debug)]
@@ -37,6 +38,14 @@ impl PushshiftBuilder {
         subs.iter()
             .map(|sub| self.replace_sub(sub)?.build())
             .collect()
+    }
+
+    pub fn before(&mut self, time: TimeConvenience) -> Result<&mut Self, PSError> {
+        self.add_param("before", &time.to_string())
+    }
+
+    pub fn after(&mut self, time: TimeConvenience) -> Result<&mut Self, PSError> {
+        self.add_param("after", &time.to_string())
     }
 
     pub fn replace_sub(&mut self, sub: &str) -> Result<&mut Self, PSError> {

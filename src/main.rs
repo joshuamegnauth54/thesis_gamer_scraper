@@ -8,20 +8,25 @@ use pushshift::pushshiftbuilder::PushshiftBuilder;
 use scraperclient::scraperclient::Node;
 use scraperclient::scraperclient::ScraperClient;
 
-fn main() -> Result<(), PSError> {
-    let _log = pretty_env_logger::try_init()
-        .map_err(|error| eprintln!("Couldn't initialized logger: {}", error));
+fn log_init() {
+    let _log = pretty_env_logger::try_init_timed().map_err(|error| {
+        eprintln!(
+            "NOTE: Failed to initialize logger. Logging may be disabled. Error: {}",
+            error
+        )
+    });
+}
 
+fn main() -> Result<(), PSError> {
+    log_init();
     let subs = PushshiftBuilder::new(PSEndpoint::Comment)
         .subreddit("PS4")?
-        .size(25)?
+        .size(500)?
         .build_multiple(&["PS4", "pcgaming", "pcmasterrace", "PS3"])?;
 
-    let scraper = ScraperClient::new(90, &subs).unwrap();
+    let mut scraper = ScraperClient::new(90, &subs)?;
     println!("{:?}", subs);
-    let nodes = scraper.scrape_nodes();
-    println!("{:?}", nodes);
-    scraper.remove_me();
-
+    scraper.scrape_nodes();
+    assert!(scraper.view_nodes().len() > 0);
     Ok(())
 }
