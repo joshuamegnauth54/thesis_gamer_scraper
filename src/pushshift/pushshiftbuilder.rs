@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use super::psendpoint::PSEndpoint;
 use super::pserror::PSError;
 use super::pserror::MAX_PS_FETCH_SIZE;
+use super::sortopts::{Parameter, Sort};
 use super::timeconvenience::TimeConvenience;
 
 /// Builds a reqwest::Url for the PushShift Reddit API.
@@ -51,6 +52,11 @@ impl PushshiftBuilder {
     pub fn replace_sub(&mut self, sub: &str) -> Result<&mut Self, PSError> {
         let _ignore = self.params.remove("subreddit");
         Ok(self.subreddit(sub)?)
+    }
+
+    pub fn sort(&mut self, sort: Sort, by: Parameter) -> Result<&mut Self, PSError> {
+        self.add_param("sort", &sort.to_string())
+            .and_then(|ps| ps.add_param("sort_type", &by.to_string()))
     }
 
     pub fn subreddit(&mut self, sub: &str) -> Result<&mut Self, PSError> {

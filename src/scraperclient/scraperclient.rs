@@ -2,65 +2,20 @@
 use log::{debug, error, info};
 use reqwest::blocking::{Client, ClientBuilder};
 use reqwest::Url;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::convert::From;
 use std::env::consts::OS;
 use std::thread::sleep;
 use std::time::Duration;
 
+use super::nodestructs::{Node, PushshiftBase, RawNode};
 use crate::pushshift::pserror::PSError;
-
-// The root data type returned by PushShift is an array so we have to store the "data" field first
-// in our SerDe struct. Also, I'm not sure if this applies to every end point for PushShift.
-#[derive(Debug, Deserialize)]
-struct PushshiftBase {
-    data: Vec<RawNode>,
-}
-
-// RawNode is our Node plus some associated metadata such as the time.
-#[derive(Clone, Hash, Eq, PartialEq, Deserialize, Debug)]
-pub struct RawNode {
-    author: String,
-    body: String,
-    created_utc: u64,
-    score: u32,
-    subreddit: String,
-}
-
-// Node contains only the data I need.
-#[derive(Clone, Hash, Eq, PartialEq, Deserialize, Debug)]
-pub struct Node {
-    author: String,    // Vertex
-    created_utc: u64,  // Maybe to add weights by posts?
-    subreddit: String, // Edge
-}
-
-impl From<RawNode> for Node {
-    fn from(raw: RawNode) -> Self {
-        Node {
-            author: raw.author,
-            created_utc: raw.created_utc,
-            subreddit: raw.subreddit,
-        }
-    }
-}
-
-impl From<&RawNode> for Node {
-    fn from(raw: &RawNode) -> Self {
-        Node {
-            author: raw.author.clone(),
-            created_utc: raw.created_utc,
-            subreddit: raw.subreddit.clone(),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct ScraperClient {
     client: Client,
     nodes: HashSet<Node>,
-    urls: Vec<Url>,
+    urls: Vec<Url>, // Make into a HashMap to store UTC epoch
 }
 
 /// I designed ScraperClient specifically for my thesis, so I'm not sure if anyone else would
@@ -68,18 +23,22 @@ pub struct ScraperClient {
 impl ScraperClient {
     pub fn new(timeout: u64, urls: &Vec<Url>) -> Result<Self, PSError> {
         Ok(ScraperClient {
-            client: ClientBuilder::new()
-                .timeout(std::time::Duration::new(timeout, 0))
-                .user_agent(format!(
-                    "<{platform}>:<{pkg}>:<{version}>",
-                    platform = OS,
-                    pkg = env!("CARGO_PKG_NAME"),
-                    version = env!("CARGO_PKG_VERSION")
-                ))
-                .build()?,
+            client: ScraperClient::make_client(timeout)?,
             urls: urls.clone(),
             nodes: HashSet::new(),
         })
+    }
+
+    fn make_client(timeout: u64) -> Result<Client, PSError> {
+        Ok(ClientBuilder::new()
+            .timeout(Duration::from_secs(timeout))
+            .user_agent(format!(
+                "<{platform}>:<{pkg}>:<{version}>",
+                platform = OS,
+                pkg = env!("CARGO_PKG_NAME"),
+                version = env!("CARGO_PKG_VERSION")
+            ))
+            .build()?)
     }
 
     pub fn from_csv(path: &str) -> Result<Self, PSError> {
