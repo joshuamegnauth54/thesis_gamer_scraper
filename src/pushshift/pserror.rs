@@ -1,11 +1,11 @@
 #[warn(clippy::all)]
+use csv::Error as CSVError;
+use serde_json::Error as SerdeJSONError;
 use std::convert::From;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::io::Error as IoError;
 use url::ParseError;
-
-use csv::Error as CSVError;
-use serde_json::Error as SerdeJSONError;
 
 pub static MAX_PS_FETCH_SIZE: u32 = 1000;
 
@@ -13,6 +13,7 @@ pub static MAX_PS_FETCH_SIZE: u32 = 1000;
 pub enum PSError {
     AlreadyAdded(String),
     Csv(CSVError),
+    Io(IoError),
     InvalidSubreddit(String),
     NoParams,
     Parse(ParseError),
@@ -27,6 +28,7 @@ impl Display for PSError {
         match self {
             AlreadyAdded(param) => write!(f, "Parameter already added: {}", param),
             Csv(error) => write!(f, "CSV: {}", error.to_string()),
+            Io(error) => write!(f, "IO: {}", error.to_string()),
             InvalidSubreddit(subreddit) => write!(
                 f,
                 "Subreddit may only contain alphanumeric and _: {}",
@@ -53,6 +55,12 @@ impl Error for PSError {}
 impl From<CSVError> for PSError {
     fn from(error: CSVError) -> Self {
         PSError::Csv(error)
+    }
+}
+
+impl From<IoError> for PSError {
+    fn from(error: IoError) -> Self {
+        PSError::Io(error)
     }
 }
 

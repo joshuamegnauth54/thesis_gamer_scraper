@@ -2,13 +2,13 @@
 use log::{debug, error, info};
 use reqwest::blocking::{Client, ClientBuilder};
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::env::consts::OS;
 use std::thread::sleep;
 use std::time::Duration;
 
 use super::nodestructs::{Node, PushshiftBase, RawNode};
+use crate::nodecsv::nodecsv::{read_nodes, write_nodes};
 use crate::pushshift::pserror::PSError;
 
 #[derive(Debug)]
@@ -41,12 +41,16 @@ impl ScraperClient {
             .build()?)
     }
 
-    pub fn from_csv(path: &str) -> Result<Self, PSError> {
-        unimplemented!()
+    pub fn from_csv(timeout: u64, urls: &Vec<Url>, path: &str) -> Result<Self, PSError> {
+        Ok(ScraperClient {
+            client: ScraperClient::make_client(timeout)?,
+            urls: urls.clone(),
+            nodes: read_nodes(path)?,
+        })
     }
 
-    pub fn to_csv(path: &str) -> Result<(), std::io::Error> {
-        unimplemented!()
+    pub fn to_csv(&self, path: &str) -> Result<(), PSError> {
+        Ok(write_nodes(path, &self.nodes)?)
     }
 
     pub fn length_nodes(&self) -> usize {

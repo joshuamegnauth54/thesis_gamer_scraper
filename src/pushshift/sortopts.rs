@@ -14,8 +14,8 @@ pub enum Parameter {
 impl Display for Sort {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            Desc => write!(f, "desc"),
-            Asc => write!(f, "asc"),
+            Sort::Desc => write!(f, "desc"),
+            Sort::Asc => write!(f, "asc"),
         }
     }
 }
@@ -23,8 +23,8 @@ impl Display for Sort {
 impl Display for Parameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            CreatedUTC => write!(f, "created_utc"),
-            Score => write!(f, "score"),
+            Parameter::CreatedUTC => write!(f, "created_utc"),
+            Parameter::Score => write!(f, "score"),
         }
     }
 }
