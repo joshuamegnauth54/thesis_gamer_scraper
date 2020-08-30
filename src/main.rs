@@ -23,7 +23,6 @@ fn main() -> Result<(), PSError> {
     let subs = PushshiftBuilder::new(PSEndpoint::Comment)
         .subreddit("PS4")?
         .size(500)?
-        .sort(Sort::Desc, Parameter::CreatedUTC)?
         .build_multiple(&["PS4", "pcgaming", "pcmasterrace", "PS3"])?;
 
     let mut scraper = ScraperClient::new(90, &subs)?;

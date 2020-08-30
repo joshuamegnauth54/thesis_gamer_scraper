@@ -1,10 +1,12 @@
 #[warn(clippy::all)]
 use csv::Error as CSVError;
 use serde_json::Error as SerdeJSONError;
-use std::convert::From;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::io::Error as IoError;
+use std::{
+    convert::From,
+    error::Error,
+    fmt::{Display, Formatter},
+    io::Error as IoError,
+};
 use url::ParseError;
 
 pub static MAX_PS_FETCH_SIZE: u32 = 1000;

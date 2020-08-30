@@ -27,8 +27,12 @@ impl PushshiftBuilder {
 
     /// Builds the PushShift API call provided that the caller specified some parameters.
     /// This function doesn't consume self to facilitate building new URLs using _replace_sub_.
-    pub fn build(&self) -> Result<Url, PSError> {
+    pub fn build(&mut self) -> Result<Url, PSError> {
         if !self.params.is_empty() {
+            self.sort(Sort::Desc, Parameter::CreatedUTC)?
+                .params
+                .entry("before".to_owned())
+                .or_insert(u32::MAX.to_string());
             Ok(Url::parse_with_params(&self.url, &self.params)?)
         } else {
             Err(PSError::NoParams)
@@ -54,7 +58,13 @@ impl PushshiftBuilder {
         Ok(self.subreddit(sub)?)
     }
 
-    pub fn sort(&mut self, sort: Sort, by: Parameter) -> Result<&mut Self, PSError> {
+    pub fn score_threshold(&mut self, thresh: u32) -> Result<&mut Self, PSError> {
+        // Admittedly, I should handle >, <, and = but I'm too lazy right now.
+        self.add_param("score", &(String::from(">") + &thresh.to_string()))
+    }
+
+    // Sort is private because PushshiftBuilder always sets sorting now.
+    fn sort(&mut self, sort: Sort, by: Parameter) -> Result<&mut Self, PSError> {
         self.add_param("sort", &sort.to_string())
             .and_then(|ps| ps.add_param("sort_type", &by.to_string()))
     }

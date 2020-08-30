@@ -61,12 +61,35 @@ impl ScraperClient {
         &self.nodes
     }
 
+    fn replace_before(url: &str) -> Url {
+        let mut qpairs: Result<Vec<_>, ()> = Url::parse(url)
+            .map_err(|error| {
+                error!(
+                    "Failed to parse URL: {} while paginating. Error: {}",
+                    url, error
+                );
+            })
+            .and_then(|url_obj| {
+                url_obj
+                    .query_pairs()
+                    .into_owned()
+                    .filter(|query_pair| query_pair.0 != "before")
+                    .map(|x| Ok(x))
+                    .collect()
+            });
+
+        Url::parse("Shh").unwrap()
+    }
+
     pub fn scrape_nodes(&mut self) {
+        // Nodes holds RawNodes in case I decide to use the extra information
+        // in any way.
         let mut nodes: HashSet<RawNode> = HashSet::new();
-        for url in self.urls.iter().map(|url| url.as_str()) {
+        let mut new_urls: Vec<Url> = Vec::with_capacity(self.urls.len());
+        for url_str in self.urls.iter().map(|url| url.as_str()) {
             let result: Result<PushshiftBase, PSError> = self
                 .client
-                .get(url)
+                .get(url_str)
                 .send()
                 .and_then(|response| response.json())
                 .map_err(|error| PSError::Reqwest(error));
@@ -76,10 +99,11 @@ impl ScraperClient {
                     for val in scraped.data.iter() {
                         debug!("{:?}", val);
                     }
-                    info!("Scraped {} nodes from {}.", scraped.data.len(), url);
-                    nodes.extend(scraped.data.into_iter())
+                    info!("Scraped {} nodes from {}.", scraped.data.len(), url_str);
+                    nodes.extend(scraped.data.into_iter());
+                    new_urls.append(ScraperClient::replace_before(&url_str));
                 }
-                Err(error) => error!("{} @ {}", error, url),
+                Err(error) => error!("{} @ {}", error, url_str),
             }
             info!("Sleeping for two seconds.");
             sleep(Duration::from_secs(2));
