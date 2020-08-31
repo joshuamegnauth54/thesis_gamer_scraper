@@ -61,27 +61,29 @@ impl ScraperClient {
         &self.nodes
     }
 
-    fn replace_before(url: &str) -> Url {
-        let mut qpairs: Result<Vec<_>, ()> = Url::parse(url)
-            .map_err(|error| {
-                error!(
-                    "Failed to parse URL: {} while paginating. Error: {}",
-                    url, error
-                );
-            })
-            .and_then(|url_obj| {
-                url_obj
-                    .query_pairs()
-                    .into_owned()
-                    .filter(|query_pair| query_pair.0 != "before")
-                    .map(|x| Ok(x))
-                    .collect()
-            });
-
-        Url::parse("Shh").unwrap()
+    pub fn scrape_until(&mut self, node_limit: u32) {
+        unimplemented!()
     }
 
-    pub fn scrape_nodes(&mut self) {
+    fn replace_before(url: &str, epoch: u64) -> Result<Url, PSError> {
+        let new_url = Url::parse(url).map_err(|error| {
+            error!(
+                "Failed to parse URL: {} while paginating. Error: {}",
+                url, error
+            );
+            error
+        })?;
+        let mut qpairs: Vec<_> = new_url
+            .query_pairs()
+            .into_owned()
+            .filter(|query_pair| query_pair.0 != "before")
+            .collect();
+        qpairs.push((String::from("before"), epoch.to_string()));
+
+        Ok(Url::parse("Shh")?)
+    }
+
+    pub fn scrape_nodes(&mut self) -> Result<(), PSError> {
         // Nodes holds RawNodes in case I decide to use the extra information
         // in any way.
         let mut nodes: HashSet<RawNode> = HashSet::new();
@@ -100,14 +102,26 @@ impl ScraperClient {
                         debug!("{:?}", val);
                     }
                     info!("Scraped {} nodes from {}.", scraped.data.len(), url_str);
-                    nodes.extend(scraped.data.into_iter());
-                    new_urls.append(ScraperClient::replace_before(&url_str));
+                    if !scraped.data.is_empty() {
+                        nodes.extend(scraped.data.into_iter());
+                        new_urls.push(ScraperClient::replace_before(
+                            &url_str,
+                            scraped
+                                .data
+                                .iter()
+                                .min_by(|x, y| x.created_utc.cmp(y.created_utc))
+                                .unwrap() // Okay to unwrap because we're comparing two u64
+                                .created_utc,
+                        )?);
+                    } else {
+                        info!("No more nodes in: {}", url_str);
+                    }
                 }
                 Err(error) => error!("{} @ {}", error, url_str),
             }
             info!("Sleeping for two seconds.");
             sleep(Duration::from_secs(2));
         }
-        self.nodes.extend(nodes.iter().map(|node| node.into()));
+        Ok(self.nodes.extend(nodes.iter().map(|node| node.into())))
     }
 }
