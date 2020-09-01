@@ -14,8 +14,8 @@ pub struct PushshiftBase {
 pub struct RawNode {
     author: String,
     body: String,
-    created_utc: u64,
-    score: u32,
+    pub created_utc: u64,
+    score: i32,
     subreddit: String,
 }
 

@@ -6,7 +6,6 @@ mod scraperclient;
 use pushshift::psendpoint::PSEndpoint;
 use pushshift::pserror::PSError;
 use pushshift::pushshiftbuilder::PushshiftBuilder;
-use pushshift::sortopts::{Parameter, Sort};
 use scraperclient::scraperclient::ScraperClient;
 
 fn log_init() {
@@ -27,7 +26,7 @@ fn main() -> Result<(), PSError> {
 
     let mut scraper = ScraperClient::new(90, &subs)?;
     println!("{:?}", subs);
-    scraper.scrape_nodes();
+    scraper.scrape_nodes()?;
     assert!(scraper.view_nodes().len() > 0);
     scraper.to_csv("/home/joshua/Documents/test.csv")?;
     Ok(())

@@ -28,8 +28,16 @@ impl PushshiftBuilder {
     /// Builds the PushShift API call provided that the caller specified some parameters.
     /// This function doesn't consume self to facilitate building new URLs using _replace_sub_.
     pub fn build(&mut self) -> Result<Url, PSError> {
+        // The params HashMap shouldn't be empty
         if !self.params.is_empty() {
-            self.sort(Sort::Desc, Parameter::CreatedUTC)?
+            // Sorting is always added so we can actually paginate the results as mentioned in the
+            // sort() function.
+            self.sort(Sort::Desc, Parameter::CreatedUTC)
+                // Finally, check for "before" and add the parameter as the max u32 value if it
+                // doesn't exist. Using u32 max is safe (I checked), but the before() function
+                // takes in a u64 in case the API changes. I'm not entirely sure how epochs work
+                // but u64 seemed like the right idea. I check for "before" in case the caller
+                // provided it already.
                 .params
                 .entry("before".to_owned())
                 .or_insert(u32::MAX.to_string());
@@ -64,9 +72,14 @@ impl PushshiftBuilder {
     }
 
     // Sort is private because PushshiftBuilder always sets sorting now.
-    fn sort(&mut self, sort: Sort, by: Parameter) -> Result<&mut Self, PSError> {
-        self.add_param("sort", &sort.to_string())
-            .and_then(|ps| ps.add_param("sort_type", &by.to_string()))
+    // The duplicate parameter error is unimportant and thus consumed.
+    fn sort(&mut self, sort: Sort, by: Parameter) -> &mut Self {
+        if !self.params.contains_key("sort") {
+            self.add_param("sort", &sort.to_string())
+                .and_then(|ps| ps.add_param("sort_type", &by.to_string()))
+                .ok();
+        }
+        self
     }
 
     pub fn subreddit(&mut self, sub: &str) -> Result<&mut Self, PSError> {

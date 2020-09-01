@@ -66,6 +66,10 @@ impl ScraperClient {
     }
 
     fn replace_before(url: &str, epoch: u64) -> Result<Url, PSError> {
+        debug!("Replacing parameter before in: {}", url);
+        // First we need to turn the &str to a Url. This shouldn't fail since the string slice
+        // directly comes from an already parsed URL. However, I check anyway because I'm not sure
+        // what the paradigm is here yet.
         let new_url = Url::parse(url).map_err(|error| {
             error!(
                 "Failed to parse URL: {} while paginating. Error: {}",
@@ -73,6 +77,10 @@ impl ScraperClient {
             );
             error
         })?;
+        // Next, the "before" query must be filtered out of the URL followed by pushing the new
+        // query into the Vector.
+        // I can't figure out how to change the actual query without going through this lengthy
+        // filtering process.
         let mut qpairs: Vec<_> = new_url
             .query_pairs()
             .into_owned()
@@ -80,7 +88,16 @@ impl ScraperClient {
             .collect();
         qpairs.push((String::from("before"), epoch.to_string()));
 
-        Ok(Url::parse("Shh")?)
+        debug!("{:?}", new_url.host_str().unwrap());
+        // If the URL doesn't contain a host then something is hopelessly wrong
+        Ok(Url::parse_with_params(
+            &(String::from("https://")
+                + new_url
+                    .host_str()
+                    .ok_or(PSError::Parse(url::ParseError::EmptyHost))?
+                + new_url.path()),
+            qpairs,
+        )?)
     }
 
     pub fn scrape_nodes(&mut self) -> Result<(), PSError> {
@@ -103,16 +120,16 @@ impl ScraperClient {
                     }
                     info!("Scraped {} nodes from {}.", scraped.data.len(), url_str);
                     if !scraped.data.is_empty() {
-                        nodes.extend(scraped.data.into_iter());
                         new_urls.push(ScraperClient::replace_before(
                             &url_str,
                             scraped
                                 .data
                                 .iter()
-                                .min_by(|x, y| x.created_utc.cmp(y.created_utc))
+                                .min_by(|x, y| x.created_utc.cmp(&y.created_utc))
                                 .unwrap() // Okay to unwrap because we're comparing two u64
                                 .created_utc,
                         )?);
+                        nodes.extend(scraped.data.into_iter());
                     } else {
                         info!("No more nodes in: {}", url_str);
                     }
