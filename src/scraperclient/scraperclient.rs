@@ -1,21 +1,24 @@
 #[warn(clippy::all)]
+use lazy_static::lazy_static;
 use log::{debug, error, info};
-use reqwest::blocking::{Client, ClientBuilder};
-use reqwest::Url;
-use std::collections::HashSet;
-use std::env::consts::OS;
-use std::thread::sleep;
-use std::time::Duration;
+use reqwest::{
+    blocking::{Client, ClientBuilder},
+    Url,
+};
+use std::{collections::HashSet, env::consts::OS, thread::sleep, time::Duration};
 
 use super::nodestructs::{Node, PushshiftBase, RawNode};
 use crate::nodecsv::nodecsv::{read_nodes, write_nodes};
 use crate::pushshift::pserror::PSError;
 
+static DEFAULT_BACKOFF: u64 = 2;
+
 #[derive(Debug)]
 pub struct ScraperClient {
+    backoff_time: u64,
     client: Client,
     nodes: HashSet<Node>,
-    urls: Vec<Url>, // Make into a HashMap to store UTC epoch
+    urls: Vec<Url>,
 }
 
 /// I designed ScraperClient specifically for my thesis, so I'm not sure if anyone else would
@@ -23,12 +26,14 @@ pub struct ScraperClient {
 impl ScraperClient {
     pub fn new(timeout: u64, urls: &Vec<Url>) -> Result<Self, PSError> {
         Ok(ScraperClient {
+            backoff_time: DEFAULT_BACKOFF,
             client: ScraperClient::make_client(timeout)?,
             urls: urls.clone(),
             nodes: HashSet::new(),
         })
     }
 
+    // The following user agent is more or less the recommended agent.
     fn make_client(timeout: u64) -> Result<Client, PSError> {
         Ok(ClientBuilder::new()
             .timeout(Duration::from_secs(timeout))
@@ -43,6 +48,7 @@ impl ScraperClient {
 
     pub fn from_csv(timeout: u64, urls: &Vec<Url>, path: &str) -> Result<Self, PSError> {
         Ok(ScraperClient {
+            backoff_time: DEFAULT_BACKOFF,
             client: ScraperClient::make_client(timeout)?,
             urls: urls.clone(),
             nodes: read_nodes(path)?,
@@ -61,8 +67,45 @@ impl ScraperClient {
         &self.nodes
     }
 
-    pub fn scrape_until(&mut self, node_limit: u32) {
-        unimplemented!()
+    pub fn scrape_until(&mut self, node_limit: usize) -> Result<(), PSError> {
+        while self.length_nodes() < node_limit {
+            info!("Node length: {}", self.length_nodes());
+            if self.scrape_nodes()? == 0 {
+                self.exponential_backoff();
+            }
+        }
+        Ok(())
+    }
+
+    // Non-accounts such as deleted posts/users are scraped as well.
+    fn filter_junk(&mut self) {
+        lazy_static! {
+            static ref NOT_USERS: Vec<String> =
+                vec!["[deleted]".to_string(), "AutoModerator".to_string()];
+        }
+
+        // I have to filter here because I'm comparing the usernames which are NOT nodes.
+        // Therefore, I can't use set logic.
+        let bad_nodes: Vec<_> = self
+            .nodes
+            .iter()
+            .filter(|node| NOT_USERS.iter().any(|nonuser| *nonuser == node.author))
+            .map(|bad_node| bad_node.clone())
+            .collect();
+
+        for bad_node in bad_nodes {
+            self.nodes.remove(&bad_node);
+        }
+    }
+
+    fn backoff(&self) {
+        info!("Sleeping: {} seconds", self.backoff_time);
+        sleep(Duration::from_secs(self.backoff_time));
+    }
+
+    fn exponential_backoff(&mut self) {
+        // Increase the backoff timer by timer^2 up to a maximum of 60
+        self.backoff_time = std::cmp::max(self.backoff_time.pow(2), 60);
     }
 
     fn replace_before(url: &str, epoch: u64) -> Result<Url, PSError> {
@@ -100,7 +143,7 @@ impl ScraperClient {
         )?)
     }
 
-    pub fn scrape_nodes(&mut self) -> Result<(), PSError> {
+    pub fn scrape_nodes(&mut self) -> Result<usize, PSError> {
         // Nodes holds RawNodes in case I decide to use the extra information
         // in any way.
         let mut nodes: HashSet<RawNode> = HashSet::new();
@@ -125,20 +168,26 @@ impl ScraperClient {
                             scraped
                                 .data
                                 .iter()
+                                // Find the lowest date-time stamp for the new "before" parameter.
                                 .min_by(|x, y| x.created_utc.cmp(&y.created_utc))
                                 .unwrap() // Okay to unwrap because we're comparing two u64
-                                .created_utc,
+                                .created_utc, // ...and finally select the actual stamp
                         )?);
                         nodes.extend(scraped.data.into_iter());
                     } else {
+                        // We shouldn't raise an error here because we may have more URLs to check.
+                        // Zero nodes may not be an error.
                         info!("No more nodes in: {}", url_str);
                     }
                 }
+                // Any actual errors are reported, but we continue scraping instead of failing to
+                // be safe.
                 Err(error) => error!("{} @ {}", error, url_str),
             }
-            info!("Sleeping for two seconds.");
-            sleep(Duration::from_secs(2));
+            self.backoff();
         }
-        Ok(self.nodes.extend(nodes.iter().map(|node| node.into())))
+        self.filter_junk();
+        self.nodes.extend(nodes.iter().map(|node| node.into()));
+        Ok(nodes.len())
     }
 }

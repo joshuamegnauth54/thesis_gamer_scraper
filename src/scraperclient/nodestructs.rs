@@ -20,11 +20,12 @@ pub struct RawNode {
 }
 
 // Node contains only the data I need.
+// All of the members are public because of the scraper.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Node {
-    author: String,    // Vertex
-    created_utc: u64,  // Maybe to add weights by posts?
-    subreddit: String, // Edge
+    pub author: String,    // Vertex
+    pub created_utc: u64,  // Maybe to add weights by posts?
+    pub subreddit: String, // Edge
 }
 
 impl From<RawNode> for Node {
