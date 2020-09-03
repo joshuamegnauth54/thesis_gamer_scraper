@@ -7,11 +7,12 @@ use reqwest::{
 };
 use std::{collections::HashSet, env::consts::OS, thread::sleep, time::Duration};
 
-use super::nodestructs::{Node, PushshiftBase, RawNode};
+use super::nodestructs::{Node, PushshiftBase, RawNode, RedditUserBase};
 use crate::nodecsv::nodecsv::{read_nodes, write_nodes};
 use crate::pushshift::pserror::PSError;
 
 static DEFAULT_BACKOFF: u64 = 2;
+static DEFAULT_THRESH: u8 = 3;
 
 #[derive(Debug)]
 pub struct ScraperClient {
@@ -19,6 +20,7 @@ pub struct ScraperClient {
     client: Client,
     nodes: HashSet<Node>,
     urls: Vec<Url>,
+    zero_length_scrapes: u8,
 }
 
 /// I designed ScraperClient specifically for my thesis, so I'm not sure if anyone else would
@@ -28,8 +30,9 @@ impl ScraperClient {
         Ok(ScraperClient {
             backoff_time: DEFAULT_BACKOFF,
             client: ScraperClient::make_client(timeout)?,
-            urls: urls.clone(),
             nodes: HashSet::new(),
+            urls: urls.clone(),
+            zero_length_scrapes: 0,
         })
     }
 
@@ -52,6 +55,7 @@ impl ScraperClient {
             client: ScraperClient::make_client(timeout)?,
             urls: urls.clone(),
             nodes: read_nodes(path)?,
+            zero_length_scrapes: 0,
         })
     }
 
@@ -67,12 +71,27 @@ impl ScraperClient {
         &self.nodes
     }
 
+    pub fn scrape_individ_users(&mut self) -> Result<(), PSError> {
+        let users: Vec<_> = self
+            .nodes
+            .iter()
+            .map(|node| format!("https://reddit.com/user/{}.json", node.author,))
+            .map(|url_str| self.client.get(&url_str).send()?.json::<RedditUserBase>())
+            .collect();
+        Ok(())
+    }
+
     pub fn scrape_until(&mut self, node_limit: usize) -> Result<(), PSError> {
         while self.length_nodes() < node_limit {
             info!("Node length: {}", self.length_nodes());
             if self.scrape_nodes()? == 0 {
+                // This whole paradigm is ugly. I need to clean it up.
+                if self.zero_length_scrapes == DEFAULT_THRESH {
+                    return Err(PSError::NoMoreNodes);
+                }
                 self.exponential_backoff();
             }
+            self.zero_length_scrapes = 0
         }
         Ok(())
     }
@@ -143,6 +162,7 @@ impl ScraperClient {
         )?)
     }
 
+    // I'll refactor this after gathering my thesis data.
     pub fn scrape_nodes(&mut self) -> Result<usize, PSError> {
         // Nodes holds RawNodes in case I decide to use the extra information
         // in any way.
@@ -176,7 +196,7 @@ impl ScraperClient {
                         nodes.extend(scraped.data.into_iter());
                     } else {
                         // We shouldn't raise an error here because we may have more URLs to check.
-                        // Zero nodes may not be an error.
+                        // Zero nodes may not be an error for a particular URL.
                         info!("No more nodes in: {}", url_str);
                     }
                 }
@@ -186,6 +206,8 @@ impl ScraperClient {
             }
             self.backoff();
         }
+        self.urls.clear();
+        self.urls.extend(new_urls.into_iter());
         self.filter_junk();
         self.nodes.extend(nodes.iter().map(|node| node.into()));
         Ok(nodes.len())

@@ -26,7 +26,7 @@ fn main() -> Result<(), PSError> {
 
     let mut scraper = ScraperClient::new(90, &subs)?;
     println!("{:?}", subs);
-    scraper.scrape_nodes()?;
+    scraper.scrape_until(500)?;
     assert!(scraper.view_nodes().len() > 0);
     scraper.to_csv("/home/joshua/Documents/test.csv")?;
     Ok(())

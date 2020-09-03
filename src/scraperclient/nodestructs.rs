@@ -2,6 +2,12 @@
 use serde::{Deserialize, Serialize};
 use std::convert::From;
 
+// Root data type for scraping from https://reddit.com/{user}.json
+#[derive(Debug, Deserialize)]
+pub struct RedditUserBase {
+    pub children: Vec<PushshiftBase>,
+}
+
 // The root data type returned by PushShift is an array so we have to store the "data" field first
 // in our SerDe struct. Also, I'm not sure if this applies to every end point for PushShift.
 #[derive(Debug, Deserialize)]
