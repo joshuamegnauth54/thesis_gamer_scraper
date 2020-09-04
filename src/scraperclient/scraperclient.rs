@@ -7,7 +7,7 @@ use reqwest::{
 };
 use std::{collections::HashSet, env::consts::OS, thread::sleep, time::Duration};
 
-use super::nodestructs::{Node, PushshiftBase, RawNode, RedditUserBase};
+use super::nodestructs::{Node, PushshiftBase, RawNode, RedditUserBase, RedditUserRoot};
 use crate::nodecsv::nodecsv::{read_nodes, write_nodes};
 use crate::pushshift::pserror::PSError;
 
@@ -72,13 +72,24 @@ impl ScraperClient {
     }
 
     pub fn scrape_individ_users(&mut self) -> Result<(), PSError> {
-        let users: Vec<_> = self
+        // We need to collect the usernames as Strings into a HashSet first
+        // to filter out duplicates. The actual HashSet contains duplicate usernames but unique
+        // nodes due to the epoch timestamp of each post.
+        let users: HashSet<_> = self
             .nodes
             .iter()
             .map(|node| format!("https://reddit.com/user/{}.json", node.author,))
-            .map(|url_str| self.client.get(&url_str).send()?.json::<RedditUserBase>())
             .collect();
-        Ok(())
+        // Next collect the actual Nodes.
+        let users_deser: Result<Vec<Node>, _> = users
+            .iter()
+            .map(|url_str| self.client.get(url_str).send()?.json())
+            .collect();
+
+        match users_deser {
+            Ok(users_all_subs) => Ok(self.nodes.extend(users_all_subs.into_iter())),
+            Err(error) => Err(error.into()),
+        }
     }
 
     pub fn scrape_until(&mut self, node_limit: usize) -> Result<(), PSError> {
@@ -113,6 +124,7 @@ impl ScraperClient {
             .collect();
 
         for bad_node in bad_nodes {
+            debug!("Bad node: {:?}", bad_node);
             self.nodes.remove(&bad_node);
         }
     }
@@ -150,7 +162,6 @@ impl ScraperClient {
             .collect();
         qpairs.push((String::from("before"), epoch.to_string()));
 
-        debug!("{:?}", new_url.host_str().unwrap());
         // If the URL doesn't contain a host then something is hopelessly wrong
         Ok(Url::parse_with_params(
             &(String::from("https://")
@@ -206,10 +217,13 @@ impl ScraperClient {
             }
             self.backoff();
         }
+        // Replace the old URLs with the new URLs with the new "before" query pairs.
+        // This is messy and I don't like it. :(
         self.urls.clear();
         self.urls.extend(new_urls.into_iter());
-        self.filter_junk();
+        // Add newly scraped nodes to our main list of nodes and remove junk nodes.
         self.nodes.extend(nodes.iter().map(|node| node.into()));
+        self.filter_junk();
         Ok(nodes.len())
     }
 }

@@ -4,6 +4,11 @@ use std::convert::From;
 
 // Root data type for scraping from https://reddit.com/{user}.json
 #[derive(Debug, Deserialize)]
+pub struct RedditUserRoot {
+    pub data: RedditUserBase,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct RedditUserBase {
     pub children: Vec<PushshiftBase>,
 }
@@ -50,6 +55,14 @@ impl From<&RawNode> for Node {
             author: raw.author.clone(),
             created_utc: raw.created_utc,
             subreddit: raw.subreddit.clone(),
+        }
+    }
+}
+
+impl From<RedditUserRoot> for RedditUserBase {
+    fn from(userroot: RedditUserRoot) -> Self {
+        RedditUserBase {
+            children: userroot.data.children,
         }
     }
 }
