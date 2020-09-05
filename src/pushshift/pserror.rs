@@ -17,6 +17,7 @@ pub enum PSError {
     Csv(CSVError),
     Io(IoError),
     InvalidSubreddit(String),
+    NoArguments,
     NoMoreNodes,
     NoParams,
     Parse(ParseError),
@@ -37,6 +38,7 @@ impl Display for PSError {
                 "Subreddit may only contain alphanumeric and _: {}",
                 subreddit
             ),
+            NoArguments => write!(f, "Expected subreddits to scrape."),
             NoMoreNodes => write!(f, "No more nodes to scrape."),
             NoParams => write!(
                 f,

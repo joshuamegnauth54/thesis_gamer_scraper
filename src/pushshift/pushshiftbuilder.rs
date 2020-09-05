@@ -47,9 +47,9 @@ impl PushshiftBuilder {
         }
     }
 
-    pub fn build_multiple(&mut self, subs: &[&str]) -> Result<Vec<Url>, PSError> {
+    pub fn build_multiple<T: AsRef<str>>(&mut self, subs: &[T]) -> Result<Vec<Url>, PSError> {
         subs.iter()
-            .map(|sub| self.replace_sub(sub)?.build())
+            .map(|sub| self.replace_sub(sub.as_ref())?.build())
             .collect()
     }
 

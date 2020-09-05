@@ -81,15 +81,14 @@ impl ScraperClient {
             .map(|node| format!("https://reddit.com/user/{}.json", node.author,))
             .collect();
         // Next collect the actual Nodes.
-        let users_deser: Result<Vec<Node>, _> = users
-            .iter()
-            .map(|url_str| self.client.get(url_str).send()?.json())
-            .collect();
-
-        match users_deser {
-            Ok(users_all_subs) => Ok(self.nodes.extend(users_all_subs.into_iter())),
-            Err(error) => Err(error.into()),
+        info!("Scraping individual users.");
+        let mut users_deser: Vec<Node> = Vec::new();
+        for user_url in users.iter() {
+            users_deser.extend(self.client.get(user_url).send()?.json());
+            self.backoff();
         }
+
+        Ok(self.nodes.extend(users_deser.into_iter()))
     }
 
     pub fn scrape_until(&mut self, node_limit: usize) -> Result<(), PSError> {
