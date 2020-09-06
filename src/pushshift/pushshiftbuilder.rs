@@ -61,6 +61,8 @@ impl PushshiftBuilder {
         self.add_param("after", &time.to_string())
     }
 
+    /// Replaces the currently defined subreddit.
+    /// This function exists due to my poor API design.
     pub fn replace_sub(&mut self, sub: &str) -> Result<&mut Self, PSError> {
         let _ignore = self.params.remove("subreddit");
         Ok(self.subreddit(sub)?)

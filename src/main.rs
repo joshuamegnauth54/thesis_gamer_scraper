@@ -6,12 +6,14 @@ mod pushshift;
 mod scraperclient;
 
 use log::error;
-use pushshift::psendpoint::PSEndpoint;
-use pushshift::pserror::PSError;
-use pushshift::pushshiftbuilder::PushshiftBuilder;
+use pushshift::{
+    psendpoint::PSEndpoint,
+    pserror::{PSError, MAX_PS_FETCH_SIZE},
+    pushshiftbuilder::PushshiftBuilder,
+};
 use scraperclient::scraperclient::ScraperClient;
 
-static DEFAULT_SCRAPE: usize = 500;
+static DEFAULT_SCRAPE: usize = 2000;
 static DEFAULT_TIMEOUT: u64 = 90;
 
 fn log_init() {
@@ -33,7 +35,7 @@ fn main() -> Result<(), PSError> {
 
     let subreddit_urls = PushshiftBuilder::new(PSEndpoint::Comment)
         .subreddit("PS4")?
-        .size(500)?
+        .size(MAX_PS_FETCH_SIZE)?
         .build_multiple(&subs)?;
 
     let mut scraper = ScraperClient::new(DEFAULT_TIMEOUT, &subreddit_urls)?;
