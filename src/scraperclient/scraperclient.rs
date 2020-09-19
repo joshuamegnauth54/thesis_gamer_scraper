@@ -11,7 +11,7 @@ use super::nodestructs::{Node, PushshiftBase, RawNode, RedditUserBase, RedditUse
 use crate::nodecsv::nodecsv::{read_nodes, write_nodes};
 use crate::pushshift::pserror::PSError;
 
-static DEFAULT_BACKOFF: u64 = 2;
+static DEFAULT_BACKOFF: u64 = 10;
 static DEFAULT_THRESH: u8 = 3;
 
 #[derive(Debug)]
@@ -71,6 +71,8 @@ impl ScraperClient {
         &self.nodes
     }
 
+    /// Snowball samples edges by using each unique username to gather a list of subreddits to
+    /// which they post.
     pub fn scrape_individ_users(&mut self) -> Result<(), PSError> {
         // We need to collect the usernames as Strings into a HashSet first
         // to filter out duplicates. The actual HashSet contains duplicate usernames but unique
@@ -91,6 +93,7 @@ impl ScraperClient {
         Ok(self.nodes.extend(users_deser.into_iter()))
     }
 
+    /// Scrapes until node_limit is reached.
     pub fn scrape_until(&mut self, node_limit: usize) -> Result<(), PSError> {
         while self.length_nodes() < node_limit {
             info!("Node length: {}", self.length_nodes());
@@ -173,6 +176,7 @@ impl ScraperClient {
     }
 
     // I'll refactor this after gathering my thesis data.
+    // Essentially performs a convenience sample.
     pub fn scrape_nodes(&mut self) -> Result<usize, PSError> {
         // Nodes holds RawNodes in case I decide to use the extra information
         // in any way.

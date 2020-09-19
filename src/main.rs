@@ -5,7 +5,7 @@ mod nodecsv;
 mod pushshift;
 mod scraperclient;
 
-use log::error;
+use log::{error, info};
 use pushshift::{
     psendpoint::PSEndpoint,
     pserror::{PSError, MAX_PS_FETCH_SIZE},
@@ -13,7 +13,7 @@ use pushshift::{
 };
 use scraperclient::scraperclient::ScraperClient;
 
-static DEFAULT_SCRAPE: usize = 2000;
+static DEFAULT_SCRAPE: usize = 200000;
 static DEFAULT_TIMEOUT: u64 = 90;
 
 fn log_init() {
@@ -34,14 +34,15 @@ fn main() -> Result<(), PSError> {
     }
 
     let subreddit_urls = PushshiftBuilder::new(PSEndpoint::Comment)
-        .subreddit("PS4")?
         .size(MAX_PS_FETCH_SIZE)?
         .build_multiple(&subs)?;
 
+    info!("Beginning scrape.");
     let mut scraper = ScraperClient::new(DEFAULT_TIMEOUT, &subreddit_urls)?;
-    println!("{:?}", subs);
     scraper.scrape_until(DEFAULT_SCRAPE)?;
     assert!(scraper.view_nodes().len() > 0);
-    scraper.scrape_individ_users()?;
+    // scraper.scrape_individ_users()?;
+    info!("Subreddits list: {:?}", subs);
+    info!("Nodes scraped: {}", scraper.length_nodes());
     Ok(scraper.to_csv("/home/joshua/Documents/test.csv")?)
 }
