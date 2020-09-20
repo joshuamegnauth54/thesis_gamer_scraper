@@ -122,6 +122,11 @@ impl ScraperClient {
             }
             self.zero_length_scrapes = 0
         }
+        debug!(
+            "scrape_until ended with {}/{}.",
+            self.length_nodes(),
+            node_limit
+        );
         Ok(())
     }
 
