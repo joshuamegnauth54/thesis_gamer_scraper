@@ -1,13 +1,14 @@
 #[warn(clippy::all)]
 use lazy_static::lazy_static;
 use log::{debug, error, info};
+use openssl::sha::sha256;
 use reqwest::{
     blocking::{Client, ClientBuilder},
     Url,
 };
 use std::{collections::HashSet, env::consts::OS, thread::sleep, time::Duration};
 
-use super::nodestructs::{Node, PushshiftBase, RawNode, RedditUserBase, RedditUserRoot};
+use super::nodestructs::{Node, PushshiftBase, RawNode};
 use crate::nodecsv::nodecsv::{read_nodes, write_nodes};
 use crate::pushshift::pserror::PSError;
 
@@ -24,7 +25,8 @@ pub struct ScraperClient {
 }
 
 /// I designed ScraperClient specifically for my thesis, so I'm not sure if anyone else would
-/// really use it for anything.
+/// really use it for anything. Much of the code is patchwork and messy, but I've learned a lot
+/// during implementation.
 impl ScraperClient {
     pub fn new(timeout: u64, urls: &Vec<Url>) -> Result<Self, PSError> {
         Ok(ScraperClient {
@@ -69,6 +71,20 @@ impl ScraperClient {
 
     pub fn view_nodes(&self) -> &HashSet<Node> {
         &self.nodes
+    }
+
+    pub fn hash_names(&mut self) {
+        let mut hashed_names = self
+            .nodes
+            .drain()
+            .map(|old_node| Node {
+                author: hex::encode(sha256(old_node.author.as_bytes())),
+                created_utc: old_node.created_utc,
+                subreddit: old_node.subreddit,
+            })
+            .collect();
+
+        std::mem::swap(&mut self.nodes, &mut hashed_names);
     }
 
     /// Snowball samples edges by using each unique username to gather a list of subreddits to

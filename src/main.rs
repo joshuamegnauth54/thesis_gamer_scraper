@@ -13,8 +13,12 @@ use pushshift::{
 };
 use scraperclient::scraperclient::ScraperClient;
 
-static DEFAULT_SCRAPE: usize = 200000;
+static DEFAULT_SCRAPE: usize = 75000;
 static DEFAULT_TIMEOUT: u64 = 90;
+
+// I'll have to add argument handling for paths later...
+static DEFAULT_PATH: &str = "/home/joshua/Documents/";
+static DEFAULT_NAME: &str = "gamer_ps.csv";
 
 fn log_init() {
     let _log = pretty_env_logger::try_init_timed().map_err(|error| {
@@ -44,5 +48,7 @@ fn main() -> Result<(), PSError> {
     // scraper.scrape_individ_users()?;
     info!("Subreddits list: {:?}", subs);
     info!("Nodes scraped: {}", scraper.length_nodes());
-    Ok(scraper.to_csv("/home/joshua/Documents/test.csv")?)
+    info!("Hashing names for privacy.");
+    scraper.hash_names();
+    Ok(scraper.to_csv(&format!("{}{}", DEFAULT_PATH, DEFAULT_NAME))?)
 }
