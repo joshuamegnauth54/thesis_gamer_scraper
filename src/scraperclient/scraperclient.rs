@@ -14,6 +14,7 @@ use crate::pushshift::pserror::PSError;
 
 static DEFAULT_BACKOFF: u64 = 10;
 static DEFAULT_THRESH: u8 = 3;
+static TOPIC_POS: usize = 5;
 
 #[derive(Debug)]
 pub struct ScraperClient {
@@ -73,6 +74,8 @@ impl ScraperClient {
         &self.nodes
     }
 
+    /// Hashes names of posters/topics.
+    /// Topics are extracted from the _permalink_ field.
     pub fn hash_names(&mut self) {
         let mut hashed_names = self
             .nodes
@@ -80,6 +83,13 @@ impl ScraperClient {
             .map(|old_node| Node {
                 author: hex::encode(sha256(old_node.author.as_bytes())),
                 created_utc: old_node.created_utc,
+                permalink: old_node
+                    .permalink
+                    .split("/")
+                    .nth(TOPIC_POS)
+                    .map_or(String::from("NA"), |topic| {
+                        hex::encode(sha256(topic.as_bytes()))
+                    }),
                 subreddit: old_node.subreddit,
             })
             .collect();

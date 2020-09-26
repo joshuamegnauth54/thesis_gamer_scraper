@@ -26,6 +26,7 @@ pub struct RawNode {
     author: String,
     body: String,
     pub created_utc: u64,
+    permalink: String,
     score: i32,
     subreddit: String,
 }
@@ -36,7 +37,8 @@ pub struct RawNode {
 pub struct Node {
     pub author: String,    // Vertex
     pub created_utc: u64,  // Maybe to add weights by posts?
-    pub subreddit: String, // Edge
+    pub permalink: String, // Alternate edge
+    pub subreddit: String, // Main edge
 }
 
 impl From<RawNode> for Node {
@@ -44,6 +46,7 @@ impl From<RawNode> for Node {
         Node {
             author: raw.author,
             created_utc: raw.created_utc,
+            permalink: raw.permalink,
             subreddit: raw.subreddit,
         }
     }
@@ -54,6 +57,7 @@ impl From<&RawNode> for Node {
         Node {
             author: raw.author.clone(),
             created_utc: raw.created_utc,
+            permalink: raw.permalink.clone(),
             subreddit: raw.subreddit.clone(),
         }
     }

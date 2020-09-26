@@ -13,7 +13,7 @@ use pushshift::{
 };
 use scraperclient::scraperclient::ScraperClient;
 
-static DEFAULT_SCRAPE: usize = 75000;
+static DEFAULT_SCRAPE: usize = 125000;
 static DEFAULT_TIMEOUT: u64 = 90;
 
 // I'll have to add argument handling for paths later...
