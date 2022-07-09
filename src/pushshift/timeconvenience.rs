@@ -1,4 +1,3 @@
-#[warn(clippy::all)]
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Debug, Copy, Clone, Hash)]

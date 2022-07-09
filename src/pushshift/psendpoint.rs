@@ -1,6 +1,6 @@
-#[warn(clippy::all)]
 use std::fmt::{Display, Error, Formatter};
 
+/// PushShift API endpoint.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum PSEndpoint {
     Comment,
@@ -8,7 +8,6 @@ pub enum PSEndpoint {
     Subreddit,
 }
 
-// Free ToString!!
 impl Display for PSEndpoint {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(

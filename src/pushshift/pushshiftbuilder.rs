@@ -1,14 +1,17 @@
-#[warn(clippy::all)]
-use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::Url;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
 use super::psendpoint::PSEndpoint;
 use super::pserror::PSError;
 use super::pserror::MAX_PS_FETCH_SIZE;
 use super::sortopts::{Parameter, Sort};
 use super::timeconvenience::TimeConvenience;
+
+// PushShift API
+static PUSHSHIFT: &str = "https://api.pushshift.io/reddit";
+// I tested the RegEx below so unwrap() is fine.
+static VALID_REDDIT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[\w\d_-]+").unwrap());
 
 /// Builds a reqwest::Url for the PushShift Reddit API.
 #[derive(Clone, Debug)]
@@ -20,7 +23,7 @@ pub struct PushshiftBuilder {
 impl PushshiftBuilder {
     pub fn new(endpoint: PSEndpoint) -> Self {
         PushshiftBuilder {
-            url: "https://api.pushshift.io/reddit".to_string() + &endpoint.to_string(),
+            url: format!("{PUSHSHIFT}{endpoint}"),
             params: HashMap::new(),
         }
     }
@@ -40,7 +43,7 @@ impl PushshiftBuilder {
                 // provided it already.
                 .params
                 .entry("before".to_owned())
-                .or_insert(u32::MAX.to_string());
+                .or_insert_with(|| u32::MAX.to_string());
             Ok(Url::parse_with_params(&self.url, &self.params)?)
         } else {
             Err(PSError::NoParams)
@@ -65,7 +68,7 @@ impl PushshiftBuilder {
     /// This function exists due to my poor API design.
     pub fn replace_sub(&mut self, sub: &str) -> Result<&mut Self, PSError> {
         let _ignore = self.params.remove("subreddit");
-        Ok(self.subreddit(sub)?)
+        self.subreddit(sub)
     }
 
     pub fn score_threshold(&mut self, thresh: u32) -> Result<&mut Self, PSError> {
@@ -85,15 +88,10 @@ impl PushshiftBuilder {
     }
 
     pub fn subreddit(&mut self, sub: &str) -> Result<&mut Self, PSError> {
-        // Using the lazy_static! macro is good practice according to the regex crate docs.
-        lazy_static! {
-            // I tested the RegEx below so we may unwrap() safely.
-            static ref INVALID_REDDIT: Regex = Regex::new(r"[^\w\d_]+").unwrap();
-        }
-        if INVALID_REDDIT.is_match(sub) {
-            Err(PSError::InvalidSubreddit(sub.to_string()))
-        } else {
+        if VALID_REDDIT.is_match(sub) {
             Ok(self.add_param("subreddit", sub)?)
+        } else {
+            Err(PSError::InvalidSubreddit(sub.to_string()))
         }
     }
 

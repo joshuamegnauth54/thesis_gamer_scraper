@@ -1,4 +1,3 @@
-#[warn(clippy::all)]
 use serde::{Deserialize, Serialize};
 use std::convert::From;
 
@@ -35,8 +34,10 @@ pub struct RawNode {
 // All of the members are public because of the scraper.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Node {
-    pub author: String,    // Vertex
-    pub created_utc: u64,  // Maybe to add weights by posts?
+// Vertex
+    pub author: String,
+// Maybe to add weights by posts?
+    pub created_utc: u64,
     pub permalink: String, // Alternate edge
     pub subreddit: String, // Main edge
 }

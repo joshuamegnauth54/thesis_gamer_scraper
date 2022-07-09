@@ -1,4 +1,3 @@
-#[warn(clippy::all)]
 use csv::Error as CSVError;
 use serde_json::Error as SerdeJSONError;
 use std::{
@@ -31,8 +30,8 @@ impl Display for PSError {
         use PSError::*;
         match self {
             AlreadyAdded(param) => write!(f, "Parameter already added: {}", param),
-            Csv(error) => write!(f, "CSV: {}", error.to_string()),
-            Io(error) => write!(f, "IO: {}", error.to_string()),
+            Csv(error) => write!(f, "CSV: {}", error),
+            Io(error) => write!(f, "IO: {}", error),
             InvalidSubreddit(subreddit) => write!(
                 f,
                 "Subreddit may only contain alphanumeric and _: {}",
@@ -44,9 +43,9 @@ impl Display for PSError {
                 f,
                 "No parameters found. You have to specify parameters such as a subreddit."
             ),
-            Parse(error) => write!(f, "Parse: {}", error.to_string()),
-            Reqwest(error) => write!(f, "Reqwest: {}", error.to_string()),
-            SerdeJson(error) => write!(f, "Serde: {}", error.to_string()),
+            Parse(error) => write!(f, "Parse: {}", error),
+            Reqwest(error) => write!(f, "Reqwest: {}", error),
+            SerdeJson(error) => write!(f, "Serde: {}", error),
             SizeTooHigh(size) => write!(
                 f,
                 "Size must be less than {}; got: {}",
