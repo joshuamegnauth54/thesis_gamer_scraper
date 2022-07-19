@@ -1,12 +1,15 @@
 [package]
 name = "thesis_gamer_scraper"
-version = "0.3.0"
+description = "Small program to consume the PushShift API."
+version = "0.4.0"
 authors = ["Joshua Megnauth"]
 edition = "2021"
 repository = "https://github.com/joshuamegnauth54/thesis_gamer_scraper"
 license = "GPL-3.0-or-later"
+keywords = ["pushshift", "scraper", "webapi"]
 
 [dependencies]
+clap = { version = "3.2.8", features = ["derive"] }
 csv = "1.1.6"
 futures = "0.3.21"
 hex = "0.4.3"

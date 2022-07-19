@@ -2,7 +2,7 @@ use futures::TryFutureExt;
 use log::{debug, error, info};
 use reqwest::{Client, ClientBuilder, Url};
 use ring::digest::{Context, Digest, SHA256};
-use std::{collections::HashSet, env::consts::OS, sync::LazyLock, time::Duration};
+use std::{collections::HashSet, env::consts::OS, path::Path, sync::LazyLock, time::Duration};
 use tokio::time::sleep;
 
 use super::nodestructs::{Node, PushshiftBase, RawNode};
@@ -54,7 +54,10 @@ impl ScraperClient {
             .build()?)
     }
 
-    pub fn from_csv(timeout: u64, urls: &[Url], path: &str) -> Result<Self, PSError> {
+    pub fn from_csv<P>(timeout: u64, urls: &[Url], path: P) -> Result<Self, PSError>
+    where
+        P: AsRef<Path>,
+    {
         Ok(ScraperClient {
             backoff_time: DEFAULT_BACKOFF,
             client: ScraperClient::make_client(timeout)?,
@@ -64,7 +67,10 @@ impl ScraperClient {
         })
     }
 
-    pub fn to_csv(&self, path: &str) -> Result<(), PSError> {
+    pub fn to_csv<P>(&self, path: P) -> Result<(), PSError>
+    where
+        P: AsRef<Path>,
+    {
         write_nodes(path, &self.nodes)
     }
 
@@ -167,6 +173,7 @@ impl ScraperClient {
         }
     }
 
+    // Sleeps before resuming a scrape.
     async fn backoff(&self) {
         info!("Sleeping: {} seconds", self.backoff_time);
         sleep(Duration::from_secs(self.backoff_time)).await;

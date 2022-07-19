@@ -31,7 +31,11 @@ where
     Ok(nodes.into_iter().map(|result| result.unwrap()).collect())
 }
 
-pub fn write_nodes(path: &str, nodes: &HashSet<Node>) -> Result<(), PSError> {
+/// Writes all nodes to `path`.
+pub fn write_nodes<P>(path: P, nodes: &HashSet<Node>) -> Result<(), PSError>
+where
+    P: AsRef<Path>,
+{
     let mut writer = Writer::from_path(path)?;
     for node in nodes.iter() {
         if let Some(error) = writer.serialize(node).err() {

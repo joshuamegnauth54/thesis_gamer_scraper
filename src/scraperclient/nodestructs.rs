@@ -13,35 +13,43 @@ pub struct RedditUserBase {
 }
 
 // The root data type returned by PushShift is an array so we have to store the "data" field first
-// in our SerDe struct. Also, I'm not sure if this applies to every end point for PushShift.
+// in our SerDe struct. Also, I'm not sure if this applies to every endpoint for PushShift.
 #[derive(Debug, Deserialize)]
 pub struct PushshiftBase {
     pub data: Vec<RawNode>,
 }
 
-// RawNode is our Node plus some associated metadata such as the time.
+/// RawNode is a Node plus some associated metadata such as the time or comment rating.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RawNode {
+    /// Redditor who wrote the post
     author: String,
     body: String,
+    /// Creation time for the post
     pub created_utc: u64,
+    /// Link to post.
     permalink: String,
+    /// Post rating
     score: i32,
+    /// Subreddit for post
     subreddit: String,
 }
 
-// Node contains only the data I need.
 // All of the members are public because of the scraper.
+/// Nodes are parsed RawNodes with only the data required for my thesis.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Node {
-// Vertex
+    // Vertex
     pub author: String,
-// Maybe to add weights by posts?
+    // Maybe to add weights by posts?
     pub created_utc: u64,
-    pub permalink: String, // Alternate edge
-    pub subreddit: String, // Main edge
+    // Alternate edge
+    pub permalink: String,
+    // Main edge
+    pub subreddit: String,
 }
 
+// Parse relevant information from raw nodes
 impl From<RawNode> for Node {
     fn from(raw: RawNode) -> Self {
         Node {
